@@ -2,51 +2,149 @@
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { signIn, useSession } from "next-auth/react"
+
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
 import Image from "next/image"
-import useLogin from "./useLogin"
+import { useToast } from "@/components/ui/use-toast"
+import { Loader2 } from "lucide-react"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+
+const loginSchema = z.object({
+  email: z
+    .string({ required_error: "email address is required" })
+    .email("email address is not valid"),
+})
+
+type LoginSchema = z.infer<typeof loginSchema>
 
 const Login = () => {
-  const { handleSubmit, register, errors, onSubmit } = useLogin()
+  const { toast } = useToast()
+  const { data: user } = useSession({ required: false })
+  const router = useRouter()
+
+  const [isGoogleSignInLoading, setIsGoogleSignInLoading] = useState(false)
+
+  if (user) router.replace("/")
+
+  const form = useForm<LoginSchema>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+    },
+  })
+
+  const onSubmit = async (values: LoginSchema) => {
+    try {
+      await signIn("email", {
+        email: values.email,
+      })
+
+      toast({
+        title: "Email sent successfully",
+        description: "Please check you inbox for the verification",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Uh oh! Something went wrong.",
+        description: "There was a problem with your request.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleGoogleLogin = async () => {
+    try {
+      setIsGoogleSignInLoading(true)
+      await signIn("google", { callbackUrl: "http://localhost:3000" })
+    } catch (e: any) {
+      toast({
+        title: "Uh oh! Something went wrong.",
+        description: "There was a problem with your request.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsGoogleSignInLoading(false)
+    }
+  }
 
   return (
-    <section className="bg-gray-100 flex justify-center flex-col items-center h-screen">
-      <div className="mx-auto max-w-[400px] bg-white p-4 rounded-md">
-        <h1 className="text-3xl font-bold mb-6">Log In</h1>
+    <>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-center">Notesync</h1>
+        <p className="text-center max-w-[75%] mx-auto">
+          Get started by creating an account or loging in your account.
+        </p>
+      </div>
 
-        <Button variant="outline" className="w-full mb-8">
-          <Image
-            src="/images/google_logo.png"
-            width={22}
-            height={22}
-            alt=""
-            className="mr-2 aspect-square object-contain"
-          />
-          Login with Google
+      <div className="mb-8">
+        <Button
+          onClick={handleGoogleLogin}
+          variant="outline"
+          className="w-full"
+          disabled={isGoogleSignInLoading}
+        >
+          {isGoogleSignInLoading ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <>
+              <Image
+                src="/images/google_logo.png"
+                className="mr-4"
+                alt=""
+                width={23}
+                height={23}
+              />
+              Log in with Google
+            </>
+          )}
         </Button>
+      </div>
 
-        <hr />
+      <hr className="mb-4" />
 
-        <form onSubmit={handleSubmit(onSubmit)} className="w-full mt-6">
-          <Label className="mb-2 block" htmlFor="email">
-            Email
-          </Label>
-          <Input
-            className="bg-gray-100"
-            placeholder="johndoe@abc.com"
-            {...register("email", { required: true })}
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email address</FormLabel>
+                <FormControl>
+                  <Input placeholder="johndoe@gmail.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-          <Button type="submit" className="mt-4 w-full">
-            Continue with email
+
+          <Button
+            disabled={form.formState.isSubmitting}
+            className="w-full"
+            type="submit"
+          >
+            {form.formState.isSubmitting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              " Continue with email"
+            )}
           </Button>
         </form>
-
-        <small className="mt-2 block text-center">
-          By clicking you acknowledge that you have read and understood, and
-          agree to Notesync
-        </small>
-      </div>
-    </section>
+      </Form>
+    </>
   )
 }
 
