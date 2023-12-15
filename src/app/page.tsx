@@ -1,24 +1,23 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { getServerSession } from "next-auth"
-import { redirect } from "next/navigation"
-import { authOptions } from "./api/auth/[...nextauth]/options"
+import { Button } from "@/components/ui/button"
+import Image from "next/image"
 
-const Home = async () => {
-  const session = await getServerSession(authOptions)
-
-  if (!session) redirect("/login")
-
+const Home = () => {
   return (
-    <main className="">
-      <h1>Hello</h1>
-    </main>
+    <section className="flex items-center flex-col justify-center w-full h-full pt-16">
+      <h1 className="text-5xl leading-normal font-bold max-w-[55%] sm:w-full text-center">
+        Your Ideas, Documents and Plans. Unified. Welcome to NoteSync
+      </h1>
+      <p className="text-xl mt-4 max-w-[35%] mx-auto text-center sm:w-full">
+        Notesync is the connected workspace where better, faster work happens.
+      </p>
+      <Button size="lg" className="mt-6">
+        Go to dashboard
+      </Button>
+
+      <div className="w-full max-w-[450px] h-[450px] relative">
+        <Image src="/images/hero.jpg" alt="" fill />
+      </div>
+    </section>
   )
 }
 

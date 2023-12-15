@@ -1,6 +1,6 @@
 import db from "@/lib/database/db"
 import { DrizzleAdapter } from "@auth/drizzle-adapter"
-import { NextAuthOptions } from "next-auth"
+import { AuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import Email from "next-auth/providers/email"
 
@@ -26,4 +26,4 @@ export const authOptions = {
   pages: {
     signIn: "/login",
   },
-} satisfies NextAuthOptions
+} satisfies AuthOptions

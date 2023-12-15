@@ -3,6 +3,7 @@ import { Open_Sans } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "@/components/ui/toaster"
 import Providers from "@/providers/Providers"
+import Navbar from "@/components/navbar/Navbar"
 
 const openSans = Open_Sans({ subsets: ["latin"] })
 
@@ -20,6 +21,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={openSans.className}>
         <Providers>
+          <Navbar />
           <main>{children}</main>
         </Providers>
         <Toaster />
