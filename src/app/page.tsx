@@ -1,28 +1,24 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import Image from "next/image"
 
-export default function Home() {
+const Home = () => {
   return (
-    <main className="mx-4">
-      <h1>Hello</h1>
-      <Dialog>
-        <DialogTrigger>Open</DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Are you sure absolutely sure?</DialogTitle>
-            <DialogDescription>
-              This action cannot be undone. This will permanently delete your
-              account and remove your data from our servers.
-            </DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
-    </main>
+    <section className="flex items-center flex-col justify-center w-full h-full pt-16">
+      <h1 className="text-5xl leading-normal font-bold max-w-[55%] sm:w-full text-center">
+        Your Ideas, Documents and Plans. Unified. Welcome to NoteSync
+      </h1>
+      <p className="text-xl mt-4 max-w-[35%] mx-auto text-center sm:w-full">
+        Notesync is the connected workspace where better, faster work happens.
+      </p>
+      <Button size="lg" className="mt-6">
+        Go to dashboard
+      </Button>
+
+      <div className="w-full max-w-[450px] h-[450px] relative">
+        <Image src="/images/hero.jpg" alt="" fill />
+      </div>
+    </section>
   )
 }
+
+export default Home
