@@ -9,7 +9,10 @@ if (!process.env.DATABASE_URL) {
   console.log("Database URL not specified")
 }
 
-const client = postgres(process.env.DATABASE_URL as string)
+const client = postgres(process.env.DATABASE_URL as string, {
+  keep_alive: 1,
+  max: 300,
+})
 const db = drizzle(client, { schema: schemas })
 
 const migrateDb = async () => {
