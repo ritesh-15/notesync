@@ -30,7 +30,7 @@ const Sidebar = () => {
       <aside
         ref={sidebarRef}
         className={cn(
-          "flex z-[999] h-full overflow-y-auto w-60 bg-secondary relative flex-col group/sidebar",
+          "flex z-[999] h-full overflow-y-auto w-80 bg-secondary relative flex-col group/sidebar",
           isResetting && "transition-all ease-in-out duration-300",
           isMobile && "w-0"
         )}
