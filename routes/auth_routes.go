@@ -22,9 +22,11 @@ func AuthRoutes(app fiber.Router) {
 		},
 	}))
 
-	auth.Post("/register", middleware.Validation(&controllers.RegisterReq{}), controllers.Register)
+	auth.Post("/register", middleware.Validation(&controllers.RegisterReq{}, "BODY"), controllers.Register)
 
-	auth.Post("/verify", controllers.Verify)
+	auth.Post("/verify", middleware.Validation(&controllers.VerifyReq{}, "BODY"), controllers.Verify)
 
-	auth.Post("/login", middleware.Validation(&controllers.LoginReq{}), controllers.Login)
+	auth.Post("/login", middleware.Validation(&controllers.LoginReq{}, "BODY"), controllers.Login)
+
+	auth.Get("/refresh", middleware.Validation(&controllers.RefreshReq{}, "COOKIE"), controllers.RefreshTokens)
 }

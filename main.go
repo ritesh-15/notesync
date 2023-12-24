@@ -1,10 +1,10 @@
 package main
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/gofiber/fiber/v2/middleware/helmet"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/ritesh-15/notesync-backend/config"
@@ -20,7 +20,8 @@ func init() {
 func main() {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			return c.Status(fiber.StatusBadRequest).JSON(
+			log.Error(err)
+			return c.Status(fiber.StatusInternalServerError).JSON(
 				utils.NewApiError("something went wrong at our side please try again later", nil),
 			)
 		},

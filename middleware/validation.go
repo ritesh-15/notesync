@@ -9,9 +9,22 @@ import (
 	"github.com/ritesh-15/notesync-backend/utils"
 )
 
-func Validation(data interface{}) fiber.Handler {
+func Validation(data interface{}, parseFrom string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		if err := c.BodyParser(&data); err != nil {
+		var err error
+
+		switch parseFrom {
+		case "BODY":
+			err = c.BodyParser(data)
+		case "COOKIE":
+			err = c.CookieParser(data)
+		case "QUERY":
+			err = c.QueryParser(data)
+		case "PARAM":
+			err = c.ParamsParser(data)
+		}
+
+		if err != nil {
 			return c.Status(http.StatusUnprocessableEntity).JSON(utils.NewApiError("unprocessable entity", nil))
 		}
 

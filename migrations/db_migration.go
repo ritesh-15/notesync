@@ -15,7 +15,7 @@ func init() {
 func main() {
 	log.Println("running migrations...")
 
-	err := config.DB.AutoMigrate(&models.User{})
+	err := config.DB.AutoMigrate(&models.User{}, &models.Session{})
 
 	if err != nil {
 		log.Fatal("migration failed", err)

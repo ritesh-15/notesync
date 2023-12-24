@@ -9,7 +9,6 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/ritesh-15/notesync-backend/config"
 	"github.com/ritesh-15/notesync-backend/dtos"
-	"github.com/ritesh-15/notesync-backend/global"
 	"github.com/ritesh-15/notesync-backend/models"
 	"github.com/ritesh-15/notesync-backend/utils"
 	"gorm.io/gorm"
@@ -71,26 +70,10 @@ type VerifyReq struct {
 }
 
 func Verify(c *fiber.Ctx) error {
-	req := &VerifyReq{
-		UserId: c.Query("userId"),
-		Token:  c.Query("token"),
-		Action: c.Query("action"),
-	}
+	var req VerifyReq
 
-	if errs := global.MyValidator.Validate(req); len(errs) > 0 {
-		errMsgs := make([]string, 0)
-
-		for _, err := range errs {
-			errMsgs = append(errMsgs, fmt.Sprintf(
-				"validation failed on field %s, condition: %s",
-				err.FailedField,
-				err.Tag,
-			))
-		}
-
-		return c.Status(http.StatusUnprocessableEntity).JSON(
-			utils.NewApiError("unprocessable entity", errMsgs),
-		)
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(http.StatusUnprocessableEntity).JSON(utils.NewApiError("unprocessable entity", nil))
 	}
 
 	// verify received token
@@ -122,20 +105,29 @@ func Verify(c *fiber.Ctx) error {
 	// generate new access and refresh tokens
 	accessToken, refreshToken := utils.GenerateAccessAndRefreshToken(user.ID)
 
+	session := models.Session{
+		UserId: user.ID,
+		Token:  refreshToken,
+	}
+
+	if result := config.DB.Create(&session); result.Error != nil {
+		return fiber.ErrInternalServerError
+	}
+
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
 		Value:    accessToken,
-		Expires:  time.Now().Add(time.Hour * 24 * 30),
 		HTTPOnly: true,
-		Secure:   false,
+		SameSite: "true",
+		Expires:  time.Now().Add(time.Hour * 24 * 30),
 	})
 
 	c.Cookie(&fiber.Cookie{
 		Name:     "refresh_token",
 		Value:    refreshToken,
-		Expires:  time.Now().Add(time.Hour * 24 * 30),
 		HTTPOnly: true,
-		Secure:   false,
+		SameSite: "true",
+		Expires:  time.Now().Add(time.Hour * 24 * 30),
 	})
 
 	return c.JSON(utils.NewResponse("ok", dtos.NewUser(&user)))
@@ -180,4 +172,86 @@ func Login(c *fiber.Ctx) error {
 	go utils.SendEmail(utils.NewEmail(req.Email, url, html, "Notesync: Login verification email"))
 
 	return c.JSON(utils.NewResponse("ok", nil))
+}
+
+type RefreshReq struct {
+	AccessToken  string `cookie:"access_token" validate:"required"`
+	RefreshToken string `cookie:"refresh_token" validate:"required"`
+}
+
+func RefreshTokens(c *fiber.Ctx) error {
+	var tokens RefreshReq
+
+	if err := c.CookieParser(&tokens); err != nil {
+		return c.Status(http.StatusNotFound).JSON(utils.NewApiError("tokens not found", nil))
+	}
+
+	// verify refresh token
+	claim, err := utils.VerifyToken(tokens.RefreshToken, config.REFRESH_TOKEN_SECRET)
+
+	if err != nil {
+
+		// revoke the session
+		if result := config.DB.Where("token = ?", tokens.RefreshToken).Delete(&models.Session{}); result.Error != nil {
+			log.Error(result.Error)
+			return fiber.ErrInternalServerError
+		}
+
+		c.ClearCookie("refresh_token")
+		c.ClearCookie("access_token")
+		return c.Status(http.StatusUnauthorized).JSON(utils.NewApiError("token is not valid", nil))
+	}
+
+	// find session in database
+	var session models.Session
+
+	if result := config.DB.Where("user_id = ? AND token = ?", claim.ID, tokens.RefreshToken).First(&session); result.Error == gorm.ErrRecordNotFound || result.RowsAffected == 0 {
+
+		// revoke all the sessions
+		if result := config.DB.Where("user_id = ?", claim.ID).Delete(&models.Session{}); result.Error != nil {
+			log.Error(result.Error)
+			return fiber.ErrInternalServerError
+		}
+
+		c.ClearCookie("refresh_token")
+		c.ClearCookie("access_token")
+		return c.Status(http.StatusUnauthorized).JSON(utils.NewApiError("session not found", nil))
+	}
+
+	// revoke previous session
+	if result := config.DB.Where("token = ?", tokens.RefreshToken).Delete(&models.Session{}); result.Error != nil {
+		log.Error(result.Error)
+		return fiber.ErrInternalServerError
+	}
+
+	// generate new access and refresh tokens
+	accessToken, refreshToken := utils.GenerateAccessAndRefreshToken(session.UserId)
+
+	newSession := models.Session{
+		UserId: session.UserId,
+		Token:  refreshToken,
+	}
+
+	if result := config.DB.Create(&newSession); result.Error != nil {
+		log.Error(result.Error)
+		return fiber.ErrInternalServerError
+	}
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    accessToken,
+		HTTPOnly: true,
+		SameSite: "true",
+		Expires:  time.Now().Add(time.Hour * 24 * 30),
+	})
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		HTTPOnly: true,
+		SameSite: "true",
+		Expires:  time.Now().Add(time.Hour * 24 * 30),
+	})
+
+	return c.JSON(utils.NewResponse("tokens refresh successfully!", nil))
 }
