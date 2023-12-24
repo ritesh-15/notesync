@@ -6,6 +6,6 @@ type ApiResponse struct {
 	Data    interface{} `json:"data"`
 }
 
-func NewResponse(status bool, message string, data interface{}) *ApiResponse {
-	return &ApiResponse{Status: status, Message: message, Data: data}
+func NewResponse(message string, data interface{}) *ApiResponse {
+	return &ApiResponse{Status: true, Message: message, Data: data}
 }

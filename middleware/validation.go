@@ -1,0 +1,36 @@
+package middleware
+
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/ritesh-15/notesync-backend/global"
+	"github.com/ritesh-15/notesync-backend/utils"
+)
+
+func Validation(data interface{}) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		if err := c.BodyParser(&data); err != nil {
+			return c.Status(http.StatusUnprocessableEntity).JSON(utils.NewApiError("unprocessable entity", nil))
+		}
+
+		if errs := global.MyValidator.Validate(data); len(errs) > 0 && errs[0].Error {
+			errMsgs := make([]string, 0)
+
+			for _, err := range errs {
+				errMsgs = append(errMsgs, fmt.Sprintf(
+					"validation failed on field %s, condition: %s",
+					err.FailedField,
+					err.Tag,
+				))
+			}
+
+			return c.Status(http.StatusUnprocessableEntity).JSON(
+				utils.NewApiError("unprocessable entity", errMsgs),
+			)
+		}
+
+		return c.Next()
+	}
+}

@@ -1,21 +1,24 @@
 package models
 
 import (
-	"github.com/google/uuid"
+	"time"
+
+	"github.com/aidarkhanov/nanoid"
 	"gorm.io/gorm"
 )
 
 type User struct {
-	ID         string `json:"id" gorm:"primaryKey"`
-	Name       string `json:"name" gorm:"notNull"`
-	Email      string `json:"email" gorm:"unique;notNull;index"`
-	IsVerified bool   `json:"isVerified"`
-	Provider   string `json:"provider"`
-	CreatedAt  string `json:"createdAt" gorm:"autoCreateTime"`
-	UpdatedAt  string `json:"updatedAt" gorm:"autoUpdateTime"`
+	ID                string    `json:"id" gorm:"primaryKey"`
+	Name              string    `json:"name" gorm:"notNull"`
+	Email             string    `json:"email" gorm:"unique;notNull;index"`
+	IsVerified        bool      `json:"isVerified"`
+	Provider          string    `json:"provider"`
+	VerificationToken string    `json:"verificationToken"`
+	CreatedAt         time.Time `json:"createdAt" gorm:"autoCreateTime"`
+	UpdatedAt         time.Time `json:"updatedAt" gorm:"autoUpdateTime"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
-	u.ID = uuid.New().String()
+	u.ID = nanoid.New()
 	return
 }

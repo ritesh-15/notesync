@@ -8,9 +8,10 @@ import (
 )
 
 var (
-	PORT         string
-	HOST         string
-	DATABASE_URL string
+	PORT                      string
+	HOST                      string
+	DATABASE_URL              string
+	VERIFICATION_TOKEN_SECRET string
 )
 
 func LoadEnv() {
@@ -22,4 +23,5 @@ func LoadEnv() {
 	PORT = os.Getenv("PORT")
 	HOST = os.Getenv("HOST")
 	DATABASE_URL = os.Getenv("DATABASE_URL")
+	VERIFICATION_TOKEN_SECRET = os.Getenv("VERIFICATION_TOKEN_SECRET")
 }

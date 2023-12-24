@@ -3,26 +3,28 @@ package controllers
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/ritesh-15/notesync-backend/config"
 	"github.com/ritesh-15/notesync-backend/models"
 	"github.com/ritesh-15/notesync-backend/utils"
+	"gorm.io/gorm"
 )
 
 type RegisterReq struct {
-	Email string `json:"email" binding:"required,email"`
-	Name  string `json:"name" binding:"required"`
+	Email string `json:"email" validate:"required,email"`
+	Name  string `json:"name" validate:"required"`
 }
 
-func Register(c *gin.Context) {
+func Register(c *fiber.Ctx) error {
 	var req RegisterReq
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.AbortWithStatusJSON(http.StatusUnprocessableEntity, utils.NewApiError("unprocessable entity", err.Error()))
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(http.StatusUnprocessableEntity).JSON(utils.NewApiError("unprocessable entity", nil))
 	}
 
-	if err := config.DB.Where("email = ?", req.Email).First(&models.User{}); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, utils.NewApiError("email address is already taken by another user", err.Error))
+	if result := config.DB.Where("email=?", req.Email).First(&models.User{}); result.Error != gorm.ErrRecordNotFound || result.RowsAffected > 0 {
+		return c.Status(http.StatusBadRequest).JSON(utils.NewApiError("email address is already taken by another user", nil))
 	}
 
 	user := &models.User{
@@ -30,9 +32,25 @@ func Register(c *gin.Context) {
 		Email: req.Email,
 	}
 
-	if err := config.DB.Create(user); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, utils.NewApiError("something went wrong while creating user", err.Error))
+	if result := config.DB.Create(user); result.Error != nil {
+		log.Info(result)
+		return c.Status(http.StatusBadRequest).JSON(utils.NewApiError("error while creating user", nil))
 	}
 
-	// send email
+	// generate verification token
+	verificationToken, err := utils.SignVerificationToken(user.ID)
+
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(utils.NewApiError("error while signing verification token", nil))
+	}
+
+	user.VerificationToken = verificationToken
+
+	if result := config.DB.Save(user); result.Error != nil {
+		return c.Status(http.StatusBadRequest).JSON(utils.NewApiError("error while saving verification token", nil))
+	}
+
+	// send verification email
+
+	return c.JSON(utils.NewResponse("ok", user))
 }

@@ -4,7 +4,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/helmet"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/ritesh-15/notesync-backend/config"
 	"github.com/ritesh-15/notesync-backend/routes"
 	"github.com/ritesh-15/notesync-backend/utils"
@@ -16,13 +18,22 @@ func init() {
 }
 
 func main() {
-	app := gin.New()
+	app := fiber.New(fiber.Config{
+		ErrorHandler: func(c *fiber.Ctx, err error) error {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				utils.NewApiError("something went wrong at our side please try again later", nil),
+			)
+		},
+	})
 
-	app.GET("/healthcheck", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, utils.NewResponse(true, "health check successfull ✅", nil))
+	app.Use(helmet.New())
+	app.Use(logger.New())
+
+	app.Get("/healthcheck", func(c *fiber.Ctx) error {
+		return c.Status(http.StatusOK).JSON(utils.NewResponse("health check successfull ✅", nil))
 	})
 
 	routes.InitRoute(app)
 
-	log.Fatal(app.Run(config.HOST + ":" + config.PORT))
+	log.Fatal(app.Listen(config.HOST + ":" + config.PORT))
 }

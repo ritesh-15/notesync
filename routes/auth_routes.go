@@ -1,14 +1,13 @@
 package routes
 
 import (
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 	"github.com/ritesh-15/notesync-backend/controllers"
+	"github.com/ritesh-15/notesync-backend/middleware"
 )
 
-func AuthRoutes(api *gin.RouterGroup) {
-	auth := api.Group("/auth")
+func AuthRoutes(app fiber.Router) {
+	auth := app.Group("/auth")
 
-	auth.POST("/register", controllers.Register)
-
-	// auth.POST("/login")
+	auth.Post("/register", middleware.Validation(&controllers.RegisterReq{}), controllers.Register)
 }
