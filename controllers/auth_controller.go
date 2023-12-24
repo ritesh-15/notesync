@@ -114,21 +114,9 @@ func Verify(c *fiber.Ctx) error {
 		return fiber.ErrInternalServerError
 	}
 
-	c.Cookie(&fiber.Cookie{
-		Name:     "access_token",
-		Value:    accessToken,
-		HTTPOnly: true,
-		SameSite: "true",
-		Expires:  time.Now().Add(time.Hour * 24 * 30),
-	})
+	c.Cookie(utils.SetCookie(c, "access_token", accessToken, time.Now().Add(time.Hour*24*30)))
 
-	c.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    refreshToken,
-		HTTPOnly: true,
-		SameSite: "true",
-		Expires:  time.Now().Add(time.Hour * 24 * 30),
-	})
+	c.Cookie(utils.SetCookie(c, "refresh_token", refreshToken, time.Now().Add(time.Hour*24*30)))
 
 	return c.JSON(utils.NewResponse("ok", dtos.NewUser(&user)))
 }
@@ -197,15 +185,18 @@ func RefreshTokens(c *fiber.Ctx) error {
 			return fiber.ErrInternalServerError
 		}
 
-		c.ClearCookie("refresh_token")
-		c.ClearCookie("access_token")
+		c.Cookie(utils.ClearCookie(c, "access_token"))
+		c.Cookie(utils.ClearCookie(c, "refresh_token"))
+
 		return c.Status(http.StatusUnauthorized).JSON(utils.NewApiError("token is not valid", nil))
 	}
 
 	// find session in database
 	var session models.Session
 
-	if result := config.DB.Where("user_id = ? AND token = ?", claim.ID, tokens.RefreshToken).First(&session); result.Error == gorm.ErrRecordNotFound || result.RowsAffected == 0 {
+	if result := config.DB.Where("user_id = ? AND token = ?", claim.ID, tokens.RefreshToken).First(&session); result.Error == gorm.ErrRecordNotFound || result.Error != nil {
+
+		log.Error(result.Error)
 
 		// revoke all the sessions
 		if result := config.DB.Where("user_id = ?", claim.ID).Delete(&models.Session{}); result.Error != nil {
@@ -213,8 +204,9 @@ func RefreshTokens(c *fiber.Ctx) error {
 			return fiber.ErrInternalServerError
 		}
 
-		c.ClearCookie("refresh_token")
-		c.ClearCookie("access_token")
+		c.Cookie(utils.ClearCookie(c, "access_token"))
+		c.Cookie(utils.ClearCookie(c, "refresh_token"))
+
 		return c.Status(http.StatusUnauthorized).JSON(utils.NewApiError("session not found", nil))
 	}
 
@@ -237,21 +229,29 @@ func RefreshTokens(c *fiber.Ctx) error {
 		return fiber.ErrInternalServerError
 	}
 
-	c.Cookie(&fiber.Cookie{
-		Name:     "access_token",
-		Value:    accessToken,
-		HTTPOnly: true,
-		SameSite: "true",
-		Expires:  time.Now().Add(time.Hour * 24 * 30),
-	})
+	c.Cookie(utils.SetCookie(c, "access_token", accessToken, time.Now().Add(time.Hour*24*30)))
 
-	c.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    refreshToken,
-		HTTPOnly: true,
-		SameSite: "true",
-		Expires:  time.Now().Add(time.Hour * 24 * 30),
-	})
+	c.Cookie(utils.SetCookie(c, "refresh_token", refreshToken, time.Now().Add(time.Hour*24*30)))
 
 	return c.JSON(utils.NewResponse("tokens refresh successfully!", nil))
+}
+
+func LoggedInUser(c *fiber.Ctx) error {
+	user := c.Locals("user").(models.User)
+	return c.Status(http.StatusOK).JSON(utils.NewResponse("user fetched successfully", dtos.NewUser(&user)))
+}
+
+func Logout(c *fiber.Ctx) error {
+	user := c.Locals("user").(models.User)
+
+	c.Cookie(utils.ClearCookie(c, "access_token"))
+	c.Cookie(utils.ClearCookie(c, "refresh_token"))
+
+	// delete all the active sessions
+	if result := config.DB.Where("user_id = ?", user.ID).Delete(&models.Session{}); result.Error != nil {
+		log.Error(result.Error)
+		return fiber.ErrInternalServerError
+	}
+
+	return c.Status(http.StatusOK).JSON(utils.NewResponse("logged out succesfully", nil))
 }

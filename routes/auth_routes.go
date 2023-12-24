@@ -11,8 +11,8 @@ import (
 	"github.com/ritesh-15/notesync-backend/utils"
 )
 
-func AuthRoutes(app fiber.Router) {
-	auth := app.Group("/auth")
+func AuthRoutes(app *fiber.Router) {
+	auth := (*app).Group("/auth")
 
 	auth.Use(limiter.New(limiter.Config{
 		Max:        10,
@@ -29,4 +29,8 @@ func AuthRoutes(app fiber.Router) {
 	auth.Post("/login", middleware.Validation(&controllers.LoginReq{}, "BODY"), controllers.Login)
 
 	auth.Get("/refresh", middleware.Validation(&controllers.RefreshReq{}, "COOKIE"), controllers.RefreshTokens)
+
+	auth.Get("/me", middleware.Authenticate, controllers.LoggedInUser)
+
+	auth.Delete("/logout", middleware.Authenticate, controllers.Logout)
 }
