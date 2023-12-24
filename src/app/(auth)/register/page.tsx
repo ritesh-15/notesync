@@ -22,30 +22,33 @@ import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 
-const loginSchema = z.object({
+const registerSchema = z.object({
   email: z
     .string({ required_error: "email address is required" })
     .email("email address is not valid"),
+  name: z
+    .string({ required_error: "name is required" })
+    .trim()
+    .min(3, "name must be greater than 3 characters"),
 })
 
-type LoginSchema = z.infer<typeof loginSchema>
+type RegisterSchema = z.infer<typeof registerSchema>
 
-const Login = () => {
+const Register = () => {
   const { toast } = useToast()
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackURL = searchParams.get("callback")
 
-  const [isGoogleSignInLoading, setIsGoogleSignInLoading] = useState(false)
-
-  const form = useForm<LoginSchema>({
-    resolver: zodResolver(loginSchema),
+  const form = useForm<RegisterSchema>({
+    resolver: zodResolver(registerSchema),
     defaultValues: {
       email: "",
+      name: "",
     },
   })
 
-  const onSubmit = async (values: LoginSchema) => {
+  const onSubmit = async (values: RegisterSchema) => {
     try {
       toast({
         title: "Email sent successfully",
@@ -71,6 +74,20 @@ const Login = () => {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="johndoe" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <FormField
             control={form.control}
             name="email"
@@ -99,12 +116,12 @@ const Login = () => {
         </form>
 
         <p className="mt-4 text-sm text-center">
-          Dont have an account yet ?{" "}
+          Already have an account ?{" "}
           <Link
-            href={`/register?callback=${callbackURL}`}
+            href={`/login?callback=${callbackURL}`}
             className="text-primary font-medium mr-2 text-md"
           >
-            Register
+            Login
           </Link>
         </p>
       </Form>
@@ -112,4 +129,4 @@ const Login = () => {
   )
 }
 
-export default Login
+export default Register
