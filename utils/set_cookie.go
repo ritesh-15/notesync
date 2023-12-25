@@ -12,7 +12,6 @@ func SetCookie(c *fiber.Ctx, key string, value string, expires time.Time) *fiber
 	cookie.Value = value
 	cookie.HTTPOnly = true
 	cookie.Expires = expires
-	cookie.Domain = "localhost"
 
 	return cookie
 }
@@ -23,7 +22,6 @@ func ClearCookie(c *fiber.Ctx, key string) *fiber.Cookie {
 	cookie.Value = ""
 	cookie.HTTPOnly = true
 	cookie.Expires = time.Now().Add(-time.Hour)
-	cookie.Domain = "localhost"
 
 	return cookie
 }

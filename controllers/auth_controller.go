@@ -58,7 +58,9 @@ func Register(c *fiber.Ctx) error {
 	// send verification email
 	html := fmt.Sprintf("<a href=\"%s\">Verify</a>", url)
 
-	go utils.SendEmail(utils.NewEmail(req.Email, url, html, "Notesync: Verification Email"))
+	if _, err := utils.SendEmail(utils.NewEmail(req.Email, url, html, "Notesync: Verification Email")); err != nil {
+		return fiber.ErrInternalServerError
+	}
 
 	return c.JSON(utils.NewResponse("ok", dtos.NewUser(user)))
 }
@@ -157,9 +159,11 @@ func Login(c *fiber.Ctx) error {
 	// send verification email
 	html := fmt.Sprintf("<a href=\"%s\">Verify</a>", url)
 
-	go utils.SendEmail(utils.NewEmail(req.Email, url, html, "Notesync: Login verification email"))
+	if _, err := utils.SendEmail(utils.NewEmail(req.Email, url, html, "Notesync: Verification Email")); err != nil {
+		return fiber.ErrInternalServerError
+	}
 
-	return c.JSON(utils.NewResponse("ok", nil))
+	return c.JSON(utils.NewResponse("ok", dtos.NewUser(&user)))
 }
 
 type RefreshReq struct {
