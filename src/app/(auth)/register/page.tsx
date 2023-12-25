@@ -15,12 +15,13 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import Image from "next/image"
 import { useToast } from "@/components/ui/use-toast"
 import { Loader2 } from "lucide-react"
-import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { useMutation } from "react-query"
+import AuthService from "@/api/authService"
+import { AxiosError } from "axios"
 
 const registerSchema = z.object({
   email: z
@@ -32,11 +33,12 @@ const registerSchema = z.object({
     .min(3, "name must be greater than 3 characters"),
 })
 
-type RegisterSchema = z.infer<typeof registerSchema>
+export type RegisterSchema = z.infer<typeof registerSchema>
 
 const Register = () => {
   const { toast } = useToast()
   const router = useRouter()
+
   const searchParams = useSearchParams()
   const callbackURL = searchParams.get("callback")
 
@@ -48,17 +50,27 @@ const Register = () => {
     },
   })
 
+  const registerMutation = useMutation(AuthService.register)
+
   const onSubmit = async (values: RegisterSchema) => {
     try {
+      await registerMutation.mutateAsync(values)
+
+      router.push(`/email-sent?email=${values.email}&name=${values.name}`)
+
       toast({
         title: "Email sent successfully",
         description: "Please check you inbox for the verification",
+        duration: 3000,
       })
     } catch (error: any) {
       toast({
         title: "Uh oh! Something went wrong.",
-        description: "There was a problem with your request.",
+        description:
+          error.response?.data.message ||
+          "There was a problem with your request.",
         variant: "destructive",
+        duration: 3000,
       })
     }
   }
@@ -67,8 +79,8 @@ const Register = () => {
     <>
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-center">Notesync</h1>
-        <p className="text-center mx-auto">
-          Lets log you in to access you documents
+        <p className="text-center mx-auto pt-1">
+          Get started by creating an account with your email address
         </p>
       </div>
 
@@ -106,6 +118,7 @@ const Register = () => {
             disabled={form.formState.isSubmitting}
             className="w-full"
             type="submit"
+            size="lg"
           >
             {form.formState.isSubmitting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

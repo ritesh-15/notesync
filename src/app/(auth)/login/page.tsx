@@ -15,12 +15,12 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import Image from "next/image"
 import { useToast } from "@/components/ui/use-toast"
 import { Loader2 } from "lucide-react"
-import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import AuthService from "@/api/authService"
+import { useMutation } from "react-query"
 
 const loginSchema = z.object({
   email: z
@@ -33,10 +33,9 @@ type LoginSchema = z.infer<typeof loginSchema>
 const Login = () => {
   const { toast } = useToast()
   const router = useRouter()
+
   const searchParams = useSearchParams()
   const callbackURL = searchParams.get("callback")
-
-  const [isGoogleSignInLoading, setIsGoogleSignInLoading] = useState(false)
 
   const form = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),
@@ -45,8 +44,14 @@ const Login = () => {
     },
   })
 
+  const loginMutation = useMutation(AuthService.login)
+
   const onSubmit = async (values: LoginSchema) => {
     try {
+      const { data } = await loginMutation.mutateAsync(values)
+
+      router.push(`/email-sent?email=${data.data.email}&name=${data.data.name}`)
+
       toast({
         title: "Email sent successfully",
         description: "Please check you inbox for the verification",
@@ -89,6 +94,7 @@ const Login = () => {
             disabled={form.formState.isSubmitting}
             className="w-full"
             type="submit"
+            size="lg"
           >
             {form.formState.isSubmitting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
